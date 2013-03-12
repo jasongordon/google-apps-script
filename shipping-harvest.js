@@ -1,7 +1,15 @@
 
 
 function go() {
-  var conversations = GmailApp.search("in:usps is:unread subject:(Click-N-Ship)");
+  processProvider("USPS");
+  processProvider("Paypal");
+}
+
+function processProvider(provider){
+  
+  var func = "get" + provider + "Conversations";
+  var conversations = this[func]();
+    
   var ids = [];
   var errors = [];
   var data = [];
@@ -13,7 +21,8 @@ function go() {
       var info = "From: " + message.getFrom() + " - Subject:" + message.getSubject() + " - Date:" + message.getDate();
       try{
         ids.push(message.getId());
-        var shipments = matchUSPSHTML(body);
+        func = "match" + provider + "HTML";
+        var shipments = this[func](body);
         for(s in shipments){
           data.push(shipments[s]);
         }
@@ -26,6 +35,7 @@ function go() {
       
     }
   }
+  
   var user = Session.getActiveUser().getEmail();
   if(data.length > 0){
     
@@ -45,6 +55,37 @@ function go() {
   }
 }
   
+
+
+
+function createEmailBody(data, service){
+  var func;
+  var body = "";
+  if(service == "packagetrackr"){
+    func="formatForPackageTrackr";
+  }
+  else{
+    Logger.log("Unsupported service: " + service);
+  }
+  Logger.log(data);
+  for(d in data){
+    body += this[func](data[d]["number"], data[d]["carrier"], data[d]["person"]);
+  }
+  return body;
+}
+
+
+// ----------   Provider Functions below ---------- //
+
+function getUSPSConversations(){
+  return GmailApp.search("in:usps is:unread subject:(Click-N-Ship)");
+}
+
+
+function getPaypalConversations(){
+  return GmailApp.search("in:paypal is:unread subject:(You created a shipping label)");
+}
+
 
 function matchUSPSHTML(data){
   var out = [];
@@ -66,20 +107,24 @@ function matchUSPSHTML(data){
   return out;
 }
 
-function createEmailBody(data, service){
-  var func;
-  var body = "";
-  if(service == "packagetrackr"){
-    func="formatForPackageTrackr";
+function matchPaypalHTML(data){
+  var out = [];
+  var track_num = data.match( /Tracking\snumber:\s(\d+)/g);
+  var to = data.match(/Shipping.address.*<br>([a-zA-Z\s]*)<br>/g);
+  for(i in track_num){
+    var o = new Object();
+    var track = track_num[i].match(/(\d+)/g);
+    Logger.log("Track " + i + ": " + track[0]);
+    var person = to[i].match(/>([a-zA-Z\s]+)<br>/);
+    var myPerson = person[1].replace(/(\r\n|\n|\r)/gm,"")
+    o["number"]=track[0];
+    o["carrier"]="USPS";
+    o["person"]=myPerson;
+    out.push(o);
+    Logger.log("Person " + i + ": " + myPerson);   
   }
-  else{
-    Logger.log("Unsupported service: " + service);
-  }
-  Logger.log(data);
-  for(d in data){
-    body += this[func](data[d]["number"], data[d]["carrier"], data[d]["person"]);
-  }
-  return body;
+  //body += formatForPackageTrackr(track[0] , "USPS" , myPerson ) ;
+  return out;
 }
 
 
