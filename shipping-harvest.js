@@ -90,12 +90,12 @@ function getPaypalConversations(){
 function matchUSPSHTML(data){
   var out = [];
   var track_num = data.match( /TrackConfirmAction\Winput\.action\WtLabels\=(\d+)/g);
-  var to = data.match(/Shipped.to.*[\r\n]*.*>([a-zA-Z\s]*)<br>/g);
+  var to = data.match(/Shipped.to.*[\r\n]*.*>([a-zA-Z\s-_]*)<br>/g);
   for(i in track_num){
     var o = new Object();
     var track = track_num[i].match(/(\d+)/g);
     Logger.log("Track " + i + ": " + track[0]);
-    var person = to[i].match(/>([a-zA-Z\s]+)<br>/);
+    var person = to[i].match(/>([a-zA-Z\s-_]+)<br>/);
     var myPerson = person[1].replace(/(\r\n|\n|\r)/gm,"")
     o["number"]=track[0];
     o["carrier"]="USPS";
@@ -110,12 +110,12 @@ function matchUSPSHTML(data){
 function matchPaypalHTML(data){
   var out = [];
   var track_num = data.match( /Tracking\snumber:\s(\d+)/g);
-  var to = data.match(/Shipping.address.*<br>([a-zA-Z\s]*)<br>/g);
+  var to = data.match(/Shipping.address.*<br>([a-zA-Z\s-_]*)<br>/g);
   for(i in track_num){
     var o = new Object();
     var track = track_num[i].match(/(\d+)/g);
     Logger.log("Track " + i + ": " + track[0]);
-    var person = to[i].match(/>([a-zA-Z\s]+)<br>/);
+    var person = to[i].match(/>([a-zA-Z\s-_]+)<br>/);
     var myPerson = person[1].replace(/(\r\n|\n|\r)/gm,"")
     o["number"]=track[0];
     o["carrier"]="USPS";
